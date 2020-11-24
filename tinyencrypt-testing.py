@@ -57,7 +57,7 @@ for x in range(0,13):
     for y in range(0,7):
         print(a[y][x],end="")
 print("")
-# end of code to create char set
+'''# end of code to create char set'''
 
 
 # planned: lower, upper, numbers, symbols evenly spread
@@ -87,64 +87,73 @@ def code2indexlist(key):
         #print(k,keyi[k])
     return keyi
 
+# direction values
+ENCRYPT=+1
+DECRYPT=-1
+
+def crypt(eachchar,keyoffset,direction):
+    try:
+        charindex=mychars.index(eachchar)
+        encind=(charindex+direction*keyoffset)%mylen
+        codeletter=mychars[encind]
+    except ValueError:
+        print("invalid character used?")
+        codeletter="invalid"
+    return codeletter
+
 def tinyencrypt(text,keyi):
     try:
         textlen=len(text)
         keylen=len(key)
         totlen=textlen + keylen
-        lencode=mychars[totlen]
-        print("textlen=",textlen,"keylen=",keylen,"total=",totlen,"lencode=", lencode)
-        #sprint(textlen, keylen, lencode)
+        eachchar=mychars[totlen]
+        keyoffset=keyi[0]
+        print("textlen=",textlen,"keylen=",keylen,"total=",totlen,"lencode=", eachchar)
         # use lencode as first char of text to encrypt
-        encind=(mychars.index(lencode)+mychars.index(key[0]))%mylen
-        r=mychars[encind]
+        code=crypt(eachchar,keyoffset,ENCRYPT)
         keyindex=1%keylen   # allow 1 char key
-        print("keyindex=",0, "keychar=",key[0], "charindex=",mychars.index(key[0]),"lenchar=",lencode,"charindex=",totlen, "encind=",encind, "encrypted=",r)
+        print("keyindex=",0, "keychar=",key[0], "charindex=",mychars.index(key[0]),"lenchar=",eachchar,"charindex=",totlen, "encind=",(mychars.index(eachchar)+keyoffset)%mylen, "encrypted=",code)
         for eachchar in text:
-            eachindex=mychars.index(eachchar)
-            #print(keyindex, key[keyindex], eachindex, eachchar)
-            #r += mychars[(mychars.index(eachchar)+mychars.index(keychar))%mylen]
-            encind=(mychars.index(eachchar)+keyi[keyindex])%mylen
-            nextr = mychars[encind]
-            r += nextr
-            #print(keyindex, key[keyindex], eachindex, eachchar, nextr)
-            print("keyindex=",keyindex, "keychar=",key[keyindex], "charindex=",keyi[keyindex],"textchar=",eachchar,"charindex=",eachindex,"encind=",encind, "encrypted=",nextr)
+            keyoffset=keyi[keyindex]
+            codeletter=crypt(eachchar,keyoffset,ENCRYPT)
+            code += codeletter
+            #print(keyindex, key[keyindex], eachindex, eachchar, codeletter)
+            print("keyindex=",keyindex, "keychar=",key[keyindex], "charindex=",keyoffset,"textchar=",eachchar,"charindex=",mychars.index(eachchar),"encind=",(mychars.index(eachchar)+keyoffset)%mylen, "encrypted=",codeletter)
             keyindex = (keyindex+1) % keylen
     except ValueError:
         print("invalid character used?")
-        r="invalid"
-    return r
+        code="invalid"
+    return code
 
-def mydecrypt(code,keyi):
+def tinydecrypt(code,keyi):
     try:
         codelen=len(code)
         keylen=len(key)
-        lenchar=code[0]
-        key0i=mychars.index(lenchar)
-        print("codelen=",codelen,"keylen=",keylen,"key0i=",key0i)
+        print("codelen=",codelen,"keylen=",keylen,"key0i=",mychars.index(code[0]))
+        eachchar=code[0]
+        keyoffset=keyi[0]
+        lencode=crypt(eachchar,keyoffset,DECRYPT)
+        totlen=mychars.index(lencode)
         encind=mychars.index(code[0])
-        totlen=(encind-keyi[0]+mylen)%mylen
         textlen=(totlen-keylen+mylen)%mylen
-        lencode=mychars[totlen]
-        print("keyindex=",0, "keychar=",key[0], "charindex=",keyi[0],"encrypted=",lenchar,"charindex=",key0i,"unencind=",totlen, "lencode=",lencode)
+        print("keyindex=",0, "keychar=",key[0], "charindex=",keyi[0],"encrypted=",eachchar,"charindex=",mychars.index(eachchar),"unencind=",totlen, "lencode=",lencode)
         print("keylen=",keylen,"textlen=",textlen)
-        r=""
+        plain=""
         keyindex=1%keylen   # allow 1 char key
         for eachchar in code[1:]:
-            eachindex=mychars.index(eachchar)
-            unencind=(mychars.index(eachchar)-keyi[keyindex]+mylen)%mylen
-            nextr = mychars[unencind]
-            r+=nextr
-            print("keyindex=",keyindex, "keychar=",key[keyindex], "charindex=",keyi[keyindex],"codechar=",eachchar,"codeindex=",eachindex,"unencind=",unencind, "unencrypted=",nextr)
+            keyoffset=keyi[keyindex]
+            plainletter=crypt(eachchar,keyoffset,DECRYPT)
+            plain+=plainletter
+            print("keyindex=",keyindex, "keychar=",key[keyindex], "charindex=",keyoffset,"codechar=",eachchar,"codeindex=",mychars.index(eachchar),"unencind=",(mychars.index(eachchar)-keyoffset+mylen)%mylen, "unencrypted=",plainletter)
             keyindex = (keyindex+1) % keylen
     except ValueError:
         print("invalid character used?")
-        r="invalid"
-    return r
+        plain="invalid"
+    return plain
 
 keyi = code2indexlist(key)
-r=tinyencrypt(text,keyi)
+code=tinyencrypt(text,keyi)
 
-print("codelen=",len(r), "code=",r)
-u=mydecrypt(r,keyi)
-print("decrypted=",u)
+print("codelen=",len(code), "code=",code)
+plain=tinydecrypt(code,keyi)
+print("decrypted=",plain)
