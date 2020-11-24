@@ -7,7 +7,6 @@
 
 # to do:
 # hide the length of the password with padding
-# combine duplicate code
 
 
 # to be python2/3 compatible:
