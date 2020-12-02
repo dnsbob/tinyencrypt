@@ -13,6 +13,7 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import random
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("key")
@@ -88,8 +89,13 @@ mylen=len(mychars)
 
 textlen=len(text)
 keylen=len(key)
+# pad to nearest block size
+blocksize=20
+blocks=int(textlen/blocksize)+1
+padding=blocks*blocksize-textlen
 print("text=",text)
 print("key=",key)
+print("blocksize=",blocksize,"blocks=",blocks,"padding=", padding)
 #print("textlen=",textlen)
 #print("keylen=",keylen)
 
@@ -105,7 +111,7 @@ def code2indexlist(key):
 ENCRYPT=+1
 DECRYPT=-1
 
-def crypt(inchar,keyoffset,direction):
+def cryptchar(inchar,keyoffset,direction):
     try:
         charindex=mychars.index(inchar)
         encind=(charindex+direction*keyoffset)%mylen
@@ -115,25 +121,58 @@ def crypt(inchar,keyoffset,direction):
         outchar="invalid"
     return outchar
 
+def cryptstring(instring,keyi,direction):
+    outstring=""
+    keyindex=1%keylen   # allow 1 char key (even if not recommended)
+    for eachchar in instring:
+        keyoffset=keyi[keyindex]
+        outletter=cryptchar(eachchar,keyoffset,direction)
+        outstring+=outletter
+        #print("keyindex=",keyindex, "keychar=",key[keyindex],
+        #   "charindex=",keyoffset,"codechar=",eachchar,"codeindex=",
+        #   mychars.index(eachchar),"unencind=",
+        #   (mychars.index(eachchar)-keyoffset+mylen)%mylen,
+        #   "unencrypted=",plainletter)
+        keyindex = (keyindex+1) % keylen
+    return outstring
+
 def tinyencrypt(text,keyi):
     try:
         textlen=len(text)
         keylen=len(key)
         totlen=textlen + keylen
+        if totlen > mylen:
+            print("error - string too long, limited to",mylen,"character")
+            return "invalid"
         eachchar=mychars[totlen]
         keyoffset=keyi[0]
-        #print("textlen=",textlen,"keylen=",keylen,"total=",totlen,"lencode=", eachchar)
+        #print("textlen=",textlen,"keylen=",keylen,"total=",totlen,"lencode=",
+        #    eachchar)
         # use lencode as first char of text to encrypt
-        code=crypt(eachchar,keyoffset,ENCRYPT)
+        code=cryptchar(eachchar,keyoffset,ENCRYPT)
         keyindex=1%keylen   # allow 1 char key
-        #print("keyindex=",0, "keychar=",key[0], "charindex=",mychars.index(key[0]),"lenchar=",eachchar,"charindex=",totlen, "encind=",(mychars.index(eachchar)+keyoffset)%mylen, "encrypted=",code)
+        #print("keyindex=",0, "keychar=",key[0], "charindex=",
+        #    mychars.index(key[0]),"lenchar=",eachchar,"charindex=",totlen,
+        #    "encind=",(mychars.index(eachchar)+keyoffset)%mylen,
+        #    "encrypted=",code)
+        code2=cryptstring(text,keyi,ENCRYPT)
+        code += code2
+        '''
         for eachchar in text:
             keyoffset=keyi[keyindex]
-            codeletter=crypt(eachchar,keyoffset,ENCRYPT)
+            codeletter=cryptchar(eachchar,keyoffset,ENCRYPT)
             code += codeletter
             #print(keyindex, key[keyindex], eachindex, eachchar, codeletter)
-            #print("keyindex=",keyindex, "keychar=",key[keyindex], "charindex=",keyoffset,"textchar=",eachchar,"charindex=",mychars.index(eachchar),"encind=",(mychars.index(eachchar)+keyoffset)%mylen, "encrypted=",codeletter)
+            #print("keyindex=",keyindex, "keychar=",key[keyindex],
+            #    "charindex=",keyoffset,"textchar=",eachchar,"charindex=",
+            #    mychars.index(eachchar),"encind=",
+            #    (mychars.index(eachchar)+keyoffset)%mylen,
+            #    "encrypted=",codeletter)
             keyindex = (keyindex+1) % keylen
+            '''
+        # padding
+        for x in range(padding):
+            code+=mychars[random.randrange(mylen)]
     except ValueError:
         print("invalid character used?")
         code="invalid"
@@ -146,20 +185,29 @@ def tinydecrypt(code,keyi):
         #print("codelen=",codelen,"keylen=",keylen,"key0i=",mychars.index(code[0]))
         eachchar=code[0]
         keyoffset=keyi[0]
-        lencode=crypt(eachchar,keyoffset,DECRYPT)
+        lencode=cryptchar(eachchar,keyoffset,DECRYPT)
         totlen=mychars.index(lencode)
         encind=mychars.index(code[0])
         textlen=(totlen-keylen+mylen)%mylen
-        #print("keyindex=",0, "keychar=",key[0], "charindex=",keyi[0],"encrypted=",eachchar,"charindex=",mychars.index(eachchar),"unencind=",totlen, "lencode=",lencode)
+        #print("keyindex=",0, "keychar=",key[0], "charindex=",keyi[0],
+        #   "encrypted=",eachchar,"charindex=",mychars.index(eachchar),
+        #   "unencind=",totlen, "lencode=",lencode)
         #print("keylen=",keylen,"textlen=",textlen)
+        plain=cryptstring(code[1:textlen+1],keyi,DECRYPT)
+        '''
         plain=""
         keyindex=1%keylen   # allow 1 char key
         for eachchar in code[1:]:
             keyoffset=keyi[keyindex]
-            plainletter=crypt(eachchar,keyoffset,DECRYPT)
+            plainletter=cryptchar(eachchar,keyoffset,DECRYPT)
             plain+=plainletter
-            #print("keyindex=",keyindex, "keychar=",key[keyindex], "charindex=",keyoffset,"codechar=",eachchar,"codeindex=",mychars.index(eachchar),"unencind=",(mychars.index(eachchar)-keyoffset+mylen)%mylen, "unencrypted=",plainletter)
+            #print("keyindex=",keyindex, "keychar=",key[keyindex],
+            #   "charindex=",keyoffset,"codechar=",eachchar,"codeindex=",
+            #   mychars.index(eachchar),"unencind=",
+            #   (mychars.index(eachchar)-keyoffset+mylen)%mylen,
+            #   "unencrypted=",plainletter)
             keyindex = (keyindex+1) % keylen
+            '''
     except ValueError:
         print("invalid character used?")
         plain="invalid"
